@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "41182315780",
+    "project_id": "smokedetectorapp-4cf39",
+    "storage_bucket": "smokedetectorapp-4cf39.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:41182315780:android:c72c630924d1b9ba583c51",
+        "android_client_info": {
+          "package_name": "com.example.smokedetection"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3o2Mxt-bZJKa8nIX4T3aE81TPvcfpw0Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
