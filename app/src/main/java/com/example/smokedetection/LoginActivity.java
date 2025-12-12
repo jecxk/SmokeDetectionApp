@@ -25,8 +25,7 @@ public class LoginActivity extends AppCompatActivity {
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     private static final Pattern PASSWORD_PATTERN =
-            Pattern.compile("^(?=.*[A-Z])(?=.*[!@#\\$%^&*]).+$");
-
+            Pattern.compile("^(?=.*[0-9])(?=.*[A-Z])(?=.*[!@#\\$%^&*]).+$");
     private EditText inputEmail, inputPassword;
     private Button btnLogin, btnRegister, btnGuest;
     private SupabaseClient supabase;
