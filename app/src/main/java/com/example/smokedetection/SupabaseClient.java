@@ -107,8 +107,7 @@ public class SupabaseClient {
                 ? MediaType.parse("image/jpeg")
                 : MediaType.parse("video/mp4");
 
-        // Build the Multipart Request
-        // This matches the "file", "media_type", and "bucket_name" fields in server.py
+        // Build the Multipart Request (This matches the "file", "media_type", and "bucket_name" fields in server.py
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", filename,

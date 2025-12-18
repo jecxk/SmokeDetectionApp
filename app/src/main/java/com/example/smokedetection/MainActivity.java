@@ -182,15 +182,15 @@ public class MainActivity extends AppCompatActivity {
     private void handleUploadSuccess(String url, String bucket) {
         Log.d("UPLOAD", "Processed URL: " + url);
 
-        // Save to Database (Keep this)
+        // Save to Database
         String fileName = url.substring(url.lastIndexOf("/") + 1);
         saveMetadataToDatabase(bucket, fileName);
 
         runOnUiThread(() -> {
-            // 1. Hide the Loading Screen
+            // Hide the Loading Screen
             loadingOverlay.setVisibility(View.GONE);
 
-            // 2. Open the Result Screen
+            // Open the Result Screen
             Intent intent = new Intent(MainActivity.this, ResultActivity.class);
             intent.putExtra("url", url);
             intent.putExtra("is_video", bucket.contains("video"));
@@ -210,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
         supabase.insert("media_uploads", jsonObject.toString(), new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                // Log error but don't annoy user if image logic worked
+                // Log error but doesn't annoy user if image logic works
                 Log.e("DB", "Database error: " + e.getMessage());
             }
 

@@ -21,16 +21,16 @@ public class ResultActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_result);
 
-        // 1. Bind Views
+        // Bind Views
         ImageButton btnBack = findViewById(R.id.btnBack);
         ImageView imgResult = findViewById(R.id.imgResult);
         VideoView vidResult = findViewById(R.id.vidResult);
 
-        // 2. Handle Back Button
+        // Handle Back Button
         // When clicked, just finish() this activity to go back to Main
         btnBack.setOnClickListener(v -> finish());
 
-        // 3. Get Data sent from MainActivity
+        // Get data sent from MainActivity
         String url = getIntent().getStringExtra("url");
         boolean isVideo = getIntent().getBooleanExtra("is_video", false);
 
@@ -39,9 +39,9 @@ public class ResultActivity extends AppCompatActivity {
             return;
         }
 
-        // 4. Display Logic
+        // Display Logic
         if (isVideo) {
-            // === VIDEO MODE ===
+            // Video mode
             imgResult.setVisibility(View.GONE);
             vidResult.setVisibility(View.VISIBLE);
 
@@ -54,15 +54,15 @@ public class ResultActivity extends AppCompatActivity {
             vidResult.setMediaController(mediaController);
             mediaController.setAnchorView(vidResult);
 
-            // Auto-start playing
+            // Auto play
             vidResult.setOnPreparedListener(mp -> vidResult.start());
 
         } else {
-            // === IMAGE MODE ===
+            // Image mode
             vidResult.setVisibility(View.GONE);
             imgResult.setVisibility(View.VISIBLE);
 
-            // Load image using Glide (handles web URLs smoothly)
+            // Load image using Glide (To handle web URL smooth)
             Glide.with(this)
                     .load(url)
                     .diskCacheStrategy(DiskCacheStrategy.NONE) // Force reload

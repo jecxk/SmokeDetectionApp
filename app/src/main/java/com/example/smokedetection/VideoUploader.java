@@ -21,7 +21,7 @@ public class VideoUploader {
     private final OkHttpClient client;
 
     public interface UploadCallback {
-        // We pass back the bucket name so MainActivity knows where it went
+        // Pass back the bucket name -> MainActivity knows where it goes
         void onSuccess(String videoURL, String bucketName);
         void onError(String error);
     }
