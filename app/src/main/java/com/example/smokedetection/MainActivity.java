@@ -22,25 +22,32 @@ import java.io.InputStream;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import androidx.exifinterface.media.ExifInterface;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String SUPABASE_URL = "https://gklovokybxmonmnuoflk.supabase.co";
-    private static final String SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbG92b2t5Ynhtb25tbnVvZmxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTY0NTcsImV4cCI6MjA4MDkzMjQ1N30.rgEFaf0M0WBKNbaintilKHILM3HS4Dnpb40wSbj_hZA";
 
+    // Supabase credentials for cloud storage
+    private static final String SUPABASE_URL = "https://gklovokybxmonmnuoflk.supabase.co";
+    private static final String SUPABASE_KEY = "<YOUR_SUPABASE_KEY>";
+
+    // URL for your local Python server (emulator uses 10.0.2.2)
     private static final String SERVER_URL = "http://10.0.2.2:8000";
 
     private SupabaseClient supabase;
-    private boolean isGuest = true;
+    private boolean isGuest = true;  // Default as guest if not logged in
 
+    // UI elements
     private Button btnUploadImage, btnUploadVideo, btnLogout;
-
     private View loadingOverlay;
 
+    // Track current processing so multiple uploads do not conflict
     private long currentProcessID = 0;
+    private Call currentCall;
 
-    private Call currentCall; // To control the network request
-
-    // Gallery Launcher
+    // Launcher to pick images or videos from gallery
     private final ActivityResultLauncher<Intent> galleryLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -60,44 +67,40 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Initialize Supabase client
         supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_KEY);
         checkLoginStatus();
 
+        // Bind UI elements
         btnUploadImage = findViewById(R.id.btnUploadImage);
         btnUploadVideo = findViewById(R.id.btnUploadVideo);
         btnLogout = findViewById(R.id.btnLogout);
         loadingOverlay = findViewById(R.id.loadingOverlay);
         Button btnStopProcessing = findViewById(R.id.btnStopProcessing);
 
+        // Set up click listeners
         btnUploadImage.setOnClickListener(v -> openGallery("image/*"));
         btnUploadVideo.setOnClickListener(v -> openGallery("video/*"));
-
         btnLogout.setOnClickListener(v -> logout());
 
+        // Stop current processing if needed
         btnStopProcessing.setOnClickListener(v -> {
             currentProcessID = 0;
-
-            if(currentCall != null){
-                currentCall.cancel();
-            }
-
-            loadingOverlay.setVisibility(View.GONE); // This reveals the Main UI again
+            if(currentCall != null) currentCall.cancel();
+            loadingOverlay.setVisibility(View.GONE);
             Toast.makeText(MainActivity.this, "Stop Processing", Toast.LENGTH_SHORT).show();
         });
     }
 
+    // Check if user is logged in and set auth token
     private void checkLoginStatus() {
         SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
         String token = prefs.getString("auth_token", null);
-
-        if (token != null) {
-            isGuest = false;
-            supabase.setAuthToken(token);
-        } else {
-            isGuest = true;
-        }
+        isGuest = (token == null);
+        if (!isGuest) supabase.setAuthToken(token);
     }
 
+    // Open gallery to pick image or video
     private void openGallery(String type) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType(type);
@@ -105,43 +108,35 @@ public class MainActivity extends AppCompatActivity {
         galleryLauncher.launch(Intent.createChooser(intent, "Select File"));
     }
 
-    // Send to server
+    // Process the selected file by sending it to the server
     private void processFile(Uri uri, boolean isVideo) {
-        Toast.makeText(this, "Uploading to Detection Server...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Processing on Server...", Toast.LENGTH_SHORT).show();
         loadingOverlay.setVisibility(View.VISIBLE);
 
-        // Generate unique ProcessID
         long myProcessID = System.currentTimeMillis();
         currentProcessID = myProcessID;
 
-        // Determine Bucket
-        String bucketName;
-        if (isGuest) {
-            bucketName = isVideo ? "guest-videos" : "guest-images";
-        } else {
-            bucketName = isVideo ? "user-videos" : "user-images";
-        }
+        // Decide bucket based on guest/user and type
+        String sourceBucket = isGuest ? (isVideo ? "guest-videos" : "guest-images") : (isVideo ? "user-videos" : "user-images");
 
-        // Read File Bytes
-        byte[] fileBytes = getBytesFromUri(uri);
+        // Convert file to byte array
+        byte[] fileBytes = isVideo ? getVideoBytesFromUri(uri) : getImageBytesFromUri(uri);
+
         if (fileBytes == null) {
             Toast.makeText(this, "Error reading file", Toast.LENGTH_SHORT).show();
             loadingOverlay.setVisibility(View.GONE);
             return;
         }
 
-        // Prepare Metadata
         String mediaType = isVideo ? "video" : "image";
         String filename = "upload_" + System.currentTimeMillis() + (isVideo ? ".mp4" : ".jpg");
 
-        // Send to Python Server (via SupabaseClient)
-        currentCall = supabase.sendToDetectionServer(SERVER_URL, mediaType, fileBytes, filename, bucketName, new Callback() {
+        // Send file to detection server
+        currentCall = supabase.sendToDetectionServer(SERVER_URL, mediaType, fileBytes, filename, sourceBucket, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 runOnUiThread(() -> {
-                    // Click stop -> ignore error
                     if (currentProcessID != myProcessID) return;
-
                     loadingOverlay.setVisibility(View.GONE);
                     Toast.makeText(MainActivity.this, "Server Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
@@ -152,20 +147,21 @@ public class MainActivity extends AppCompatActivity {
                 final String responseBody = response.body().string();
                 if (response.isSuccessful()) {
                     try {
-                        // Python Server returns: { "status": "success", "processed_url": "..." }
                         JSONObject json = new JSONObject(responseBody);
+
                         String processedUrl = json.getString("processed_url");
+                        boolean isConfirmed = json.optBoolean("confirmed", false);
 
                         runOnUiThread(() -> {
                             if(currentProcessID != myProcessID) return;
-                            handleUploadSuccess(processedUrl, bucketName);
+                            handleDetectionResult(processedUrl, "processed", isConfirmed, filename);
                         });
 
                     } catch (Exception e) {
                         runOnUiThread(() -> {
                             if (currentProcessID != myProcessID) return;
                             loadingOverlay.setVisibility(View.GONE);
-                            Toast.makeText(MainActivity.this, "JSON Error", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, "Failed to parse result", Toast.LENGTH_SHORT).show();
                         });
                     }
                 } else {
@@ -179,30 +175,43 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void handleUploadSuccess(String url, String bucket) {
+    // Handle results returned from server
+    private void handleDetectionResult(String url, String bucket, boolean isConfirmed, String originalFileName) {
         Log.d("UPLOAD", "Processed URL: " + url);
 
-        // Save to Database
-        String fileName = url.substring(url.lastIndexOf("/") + 1);
-        saveMetadataToDatabase(bucket, fileName);
+        // Save metadata to database
+        saveMetadataToDatabase(bucket, url, originalFileName, isConfirmed);
 
         runOnUiThread(() -> {
-            // Hide the Loading Screen
             loadingOverlay.setVisibility(View.GONE);
 
-            // Open the Result Screen
-            Intent intent = new Intent(MainActivity.this, ResultActivity.class);
-            intent.putExtra("url", url);
-            intent.putExtra("is_video", bucket.contains("video"));
-            startActivity(intent);
+            if (isConfirmed) {
+                Toast.makeText(MainActivity.this, "SMOKING CONFIRMED!", Toast.LENGTH_LONG).show();
+
+                // Open ResultActivity to show processed media
+                Intent intent = new Intent(MainActivity.this, ResultActivity.class);
+                intent.putExtra("url", url);
+                intent.putExtra("is_video", url.endsWith(".mp4"));
+                startActivity(intent);
+            } else {
+                Toast.makeText(MainActivity.this, "Analysis Complete: No smoking detected.", Toast.LENGTH_LONG).show();
+            }
         });
     }
 
-    private void saveMetadataToDatabase(String bucket, String filePath) {
+    // Save file metadata and confirmation status to Supabase database
+    private void saveMetadataToDatabase(String bucket, String filePath, String originalFileName, boolean isConfirmed) {
         JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put("bucket_name", bucket);
             jsonObject.put("file_path", filePath);
+
+            JSONObject meta = new JSONObject();
+            meta.put("is_confirmed", isConfirmed);
+            meta.put("original_file", originalFileName);
+            meta.put("analyzed_at", System.currentTimeMillis());
+
+            jsonObject.put("processed_result", meta);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -210,40 +219,79 @@ public class MainActivity extends AppCompatActivity {
         supabase.insert("media_uploads", jsonObject.toString(), new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                // Log error but doesn't annoy user if image logic works
                 Log.e("DB", "Database error: " + e.getMessage());
             }
 
             @Override
             public void onResponse(Call call, Response response) {
-                if (response.isSuccessful()) {
-                    Log.d("DB", "Metadata saved");
-                }
+                if (response.isSuccessful()) Log.d("DB", "Metadata saved");
             }
         });
     }
 
+    // Logout the user
     private void logout() {
         getSharedPreferences("AppPrefs", MODE_PRIVATE).edit().clear().apply();
         startActivity(new Intent(MainActivity.this, LoginActivity.class));
         finish();
     }
 
-    // Helper: Read Bytes from URI
-    private byte[] getBytesFromUri(Uri uri) {
-        try (InputStream inputStream = getContentResolver().openInputStream(uri);
-             ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream()) {
+    // Convert image URI to byte array with correct orientation
+    private byte[] getImageBytesFromUri(Uri uri) {
+        try {
+            InputStream input = getContentResolver().openInputStream(uri);
+            Bitmap bitmap = BitmapFactory.decodeStream(input);
+            input.close();
 
-            if (inputStream == null) return null;
+            if (bitmap == null) return null;
 
-            int bufferSize = 1024;
-            byte[] buffer = new byte[bufferSize];
-            int len;
-            while ((len = inputStream.read(buffer)) != -1) {
-                byteBuffer.write(buffer, 0, len);
+            InputStream exifInput = getContentResolver().openInputStream(uri);
+            ExifInterface exif = new ExifInterface(exifInput);
+            exifInput.close();
+
+            int orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+            );
+
+            Matrix matrix = new Matrix();
+            if (orientation == ExifInterface.ORIENTATION_ROTATE_90) matrix.postRotate(90);
+            else if (orientation == ExifInterface.ORIENTATION_ROTATE_180) matrix.postRotate(180);
+            else if (orientation == ExifInterface.ORIENTATION_ROTATE_270) matrix.postRotate(270);
+
+            Bitmap rotatedBitmap = Bitmap.createBitmap(
+                    bitmap, 0, 0,
+                    bitmap.getWidth(),
+                    bitmap.getHeight(),
+                    matrix, true
+            );
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            return out.toByteArray();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // Convert video URI to byte array
+    private byte[] getVideoBytesFromUri(Uri uri) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+            byte[] data = new byte[8192];
+            int nRead;
+            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
             }
-            return byteBuffer.toByteArray();
-        } catch (IOException e) {
+
+            inputStream.close();
+            return buffer.toByteArray();
+
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
