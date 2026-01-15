@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Base -->
+    <color name="bg">#FFFFFF</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="divider">#E5E7EB</color>
+
+    <!-- Pastel green -->
+    <color name="green_50">#ECFDF5</color>
+    <color name="green_100">#D1FAE5</color>
+    <color name="green_300">#6EE7B7</color>
+    <color name="green_600">#16A34A</color>
+
+    <!-- Alert red -->
+    <color name="red_50">#FEF2F2</color>
+    <color name="red_600">#DC2626</color>
+
+    <!-- State colors -->
+    <color name="state_ok_bg">#ECFDF5</color>
+    <color name="state_ok_stroke">#6EE7B7</color>
+    <color name="state_ok_text">#16A34A</color>
+
+    <color name="state_alert_bg">#FEF2F2</color>
+    <color name="state_alert_stroke">#FCA5A5</color>
+    <color name="state_alert_text">#DC2626</color>
 </resources>

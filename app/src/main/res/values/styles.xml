@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Widget.Air.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardCornerRadius">@dimen/r_24</item>
+    </style>
+
+    <!-- Card tròn (cornerSize 50%) -->
+    <style name="Widget.Air.CircleCard" parent="Widget.Material3.CardView.Outlined">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.Air.Circle</item>
+        <item name="cardUseCompatPadding">true</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.Air.Circle">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+    <style name="ShapeAppearanceOverlay.Air">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+    <style name="ShapeAppearanceOverlay">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+
+
+
+</resources>
