@@ -38,8 +38,8 @@ public class LoginActivity extends AppCompatActivity {
         btnRegister = findViewById(R.id.btnRegister);
 
         // Set up the button clicks
-        // true means we are trying to Login
-        // false means we are trying to Register
+        // True means we are trying to Login
+        // False means we are trying to Register
         btnLogin.setOnClickListener(v -> handleAuth(true));
         btnRegister.setOnClickListener(v -> handleAuth(false));
     }

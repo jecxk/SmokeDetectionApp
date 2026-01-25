@@ -24,10 +24,9 @@ public class StreamActivity extends AppCompatActivity {
         webView.getSettings().setLoadWithOverviewMode(true);
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setBuiltInZoomControls(true);
-        webView.getSettings().setDisplayZoomControls(false); // Hide the ugly buttons
+        webView.getSettings().setDisplayZoomControls(false); // Hide the buttons
 
         // Load the Python Stream URL
-        // Make sure your Laptop IP in ApiClient.java is correct!
         String streamUrl = ApiClient.getStreamUrl();
         webView.loadUrl(streamUrl);
 

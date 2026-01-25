@@ -33,7 +33,7 @@ public class SmokeAlert extends Service {
         createNotificationChannel();
 
         // Start this service in the "Foreground"
-        // This puts a permanent notification in the status bar so Android knows
+        // Put a permanent notification in the status bar so Android knows
         // this app is important and shouldn't be killed to save battery.
         startForeground(1, getNotification("Monitoring active..."));
 
@@ -78,7 +78,7 @@ public class SmokeAlert extends Service {
                     String body = response.body().string();
                     JSONArray alerts = new JSONArray(body);
 
-                    // If we have any alerts in the history...
+                    // If we have any alerts in the history
                     if (alerts.length() > 0) {
                         // Get the most recent one (Item 0)
                         JSONObject latest = alerts.getJSONObject(0);
@@ -87,8 +87,8 @@ public class SmokeAlert extends Service {
                         // Check if this timestamp is different from the last one we saw
                         if (!timestamp.equals(lastAlertTimestamp)) {
 
-                            // Only trigger a Danger Alert if this isn't the first time the app loaded.
-                            // (We don't want to beep immediately just for loading old history)
+                            // Only trigger alert if this isn't the first time the app loaded
+                            // --> Not beep immediately just for loading old history
                             if (!lastAlertTimestamp.isEmpty()) {
                                 triggerDangerNotification();
                             }
@@ -110,7 +110,7 @@ public class SmokeAlert extends Service {
                 .setContentTitle("SmokeAlert")
                 .setContentText("ALERT: Smoke Detected!")
                 .setSmallIcon(android.R.drawable.stat_sys_warning)
-                .setAutoCancel(true) // Disappears when clicked
+                .setAutoCancel(true) // Disappear when clicked
                 .build();
 
         manager.notify(2, notification);

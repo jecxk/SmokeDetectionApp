@@ -1,6 +1,7 @@
 package com.example.smokedetection;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,14 +41,20 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
             holder.txtConfidence.setText(String.format("Confidence: %.1f%%", conf));
 
             // Load Image from Python Server
-            // The DB saves path like "/static/alerts/..."
-            // We need to add the Base URL: "http://192...:8000/static/alerts/..."
+            // Add the Base URL: "http://192...:8000/static/alerts/..."
             String fullUrl = ApiClient.BASE_URL + item.getString("image_path");
 
             Glide.with(context)
                     .load(fullUrl)
                     .placeholder(android.R.drawable.ic_menu_gallery)
                     .into(holder.imgEvidence);
+
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(context, ViewEvidenceActivity.class);
+                // Pass the image URL to the next screen so it knows what to show
+                intent.putExtra("IMAGE_URL", fullUrl);
+                context.startActivity(intent);
+            });
 
         } catch (Exception e) { e.printStackTrace(); }
     }

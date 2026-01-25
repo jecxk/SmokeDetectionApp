@@ -4,11 +4,11 @@ import okhttp3.*;
 import java.io.IOException;
 
 public class ApiClient {
-    public static final String BASE_URL = "http://192.168.1.11:8000";
+    public static final String BASE_URL = "http://192.168.1.8:8000";
 
     private static final OkHttpClient client = new OkHttpClient();
 
-    // --- AUTHENTICATION ---
+    // Authentication
 
     public static void login(String username, String password, Callback callback) {
         // Create the form body with data
@@ -44,7 +44,7 @@ public class ApiClient {
         client.newCall(request).enqueue(callback);
     }
 
-    // --- CAMERA URLS ---
+    // Camera URL
     // These return strings because we load them into Glide/WebView directly
 
     public static String getSnapshotUrl() {

@@ -1,15 +1,21 @@
 package com.example.smokedetection;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.json.JSONArray;
 import java.io.IOException;
@@ -17,6 +23,8 @@ import java.io.IOException;
 public class HistoryActivity extends AppCompatActivity {
 
     private RecyclerView recyclerHistory;
+    private TextView txtEmpty;
+    private ImageButton btnBack, btnClear;
     private OkHttpClient client = new OkHttpClient();
 
     @Override
@@ -24,10 +32,62 @@ public class HistoryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_history);
 
+        // Bind Views
         recyclerHistory = findViewById(R.id.recyclerHistory);
+        txtEmpty = findViewById(R.id.txtEmpty);
+        btnBack = findViewById(R.id.btnBack);
+        btnClear = findViewById(R.id.btnClear);
+
         recyclerHistory.setLayoutManager(new LinearLayoutManager(this));
 
+        // Handle Back Button (Closes screen)
+        btnBack.setOnClickListener(v -> finish());
+
+        // Handle Clear History Button (Shows Popup)
+        btnClear.setOnClickListener(v -> showClearConfirmation());
+
+        // Load Data from Server
         loadHistory();
+    }
+
+    private void showClearConfirmation() {
+        // Create the popup dialog
+        new AlertDialog.Builder(this)
+                .setTitle("Clear History")
+                .setMessage("Are you sure you want to clear the history ? This cannot be undone !!!")
+                .setPositiveButton("Yes, Clear All", (dialog, which) -> clearHistoryFromServer())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void clearHistoryFromServer() {
+        SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
+        int userId = prefs.getInt("user_id", -1);
+
+        // Prepare data to send to Python server
+        RequestBody formBody = new FormBody.Builder()
+                .add("user_id", String.valueOf(userId))
+                .build();
+
+        Request request = new Request.Builder()
+                .url(ApiClient.BASE_URL + "/clear_history") // Calls the Python function to clear history
+                .post(formBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                runOnUiThread(() -> Toast.makeText(HistoryActivity.this, "Network Error", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                if (response.isSuccessful()) {
+                    // If server deleted it, reload the list
+                    runOnUiThread(() -> loadHistory());
+                }
+            }
+        });
     }
 
     private void loadHistory() {
@@ -51,8 +111,20 @@ public class HistoryActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         try {
                             JSONArray data = new JSONArray(body);
-                            HistoryAdapter adapter = new HistoryAdapter(HistoryActivity.this, data);
-                            recyclerHistory.setAdapter(adapter);
+
+                            // Toggle empty state
+                            if (data.length() == 0) {
+                                // No alerts -> "No History" text
+                                txtEmpty.setVisibility(View.VISIBLE);
+                                recyclerHistory.setVisibility(View.GONE);
+                            } else {
+                                // Have alerts -> List
+                                txtEmpty.setVisibility(View.GONE);
+                                recyclerHistory.setVisibility(View.VISIBLE);
+
+                                HistoryAdapter adapter = new HistoryAdapter(HistoryActivity.this, data);
+                                recyclerHistory.setAdapter(adapter);
+                            }
                         } catch (Exception e) { e.printStackTrace(); }
                     });
                 }

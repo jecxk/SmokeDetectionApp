@@ -26,33 +26,33 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 1. Permission Check (For Notifications on Android 13+)
+        // Permission check (For Notifications on Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
             }
         }
 
-        // 2. Bind ALL Views here (Keep it clean)
+        // Bind all views
         imgCameraPreview = findViewById(R.id.imgCameraPreview);
         cardCamera = findViewById(R.id.cardCamera);
         btnLogout = findViewById(R.id.btnLogout);
         btnRefresh = findViewById(R.id.btnRefresh);
-        btnHistory = findViewById(R.id.btnHistory); // Make sure this ID exists in XML!
+        btnHistory = findViewById(R.id.btnHistory);
 
-        // 3. Start Background Service Safely
+        // Start background service safely
         Intent serviceIntent = new Intent(this, SmokeAlert.class);
-        // This check prevents crashes on newer Android versions
+        // This check prevents crash on newer Android versions
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent);
         } else {
             startService(serviceIntent);
         }
 
-        // 4. Load Initial Snapshot
+        // Load initial snapshot
         refreshSnapshot();
 
-        // 5. Handle Clicks
+        // Handle clicks
         cardCamera.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, StreamActivity.class);
             startActivity(intent);
